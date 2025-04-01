@@ -84,11 +84,14 @@ export default class Editor extends Component {
     // Defaults to true
     const autoPosition =
       this.props.autoPosition === undefined ? true : this.props.autoPosition;
-
+    
+    const baseOnParent =
+      this.props.baseOnParent === undefined ? false : this.props.baseOnParent;
+    
     if (window?.ResizeObserver) {
       const resizeObserver = new ResizeObserver(() => {
         if (!this.state.dragged)
-          setPosition(this.props.wrapperEl, this.element.current, this.props.selectedElement, autoPosition);
+          setPosition(this.props.wrapperEl, this.element.current, this.props.selectedElement, autoPosition, baseOnParent);
       });
 
       resizeObserver.observe(this.props.wrapperEl);
@@ -96,7 +99,7 @@ export default class Editor extends Component {
     } else {
       // Fire setPosition manually *only* for devices that don't support ResizeObserver
       if (!this.state.dragged)
-        setPosition(this.props.wrapperEl, this.element.current, this.props.selectedElement, autoPosition);
+        setPosition(this.props.wrapperEl, this.element.current, this.props.selectedElement, autoPosition, baseOnParent);
     }
   }
 

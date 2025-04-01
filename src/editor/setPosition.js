@@ -1,7 +1,7 @@
 const MARGIN_VERTICAL = 14;
 
 /** Sets the editor position and determines a proper orientation **/
-const setPosition = (wrapperEl, editorEl, selectedEl, autoPosition) => {
+const setPosition = (wrapperEl, editorEl, selectedEl, autoPosition, baseOnParent = false) => {
   // Container element bounds
   const containerBounds = wrapperEl.getBoundingClientRect();
 
@@ -15,8 +15,16 @@ const setPosition = (wrapperEl, editorEl, selectedEl, autoPosition) => {
 
   if (autoPosition) {
     const defaultOrientation = editorEl.children[1].getBoundingClientRect();
+    let innerWidth = 0;
+    let innerHeight = 0;
 
-    const { innerWidth, innerHeight } = wrapperEl.ownerDocument.defaultView;
+    if (baseOnParent) {
+      innerWidth = containerBounds.right;
+      innerHeight = containerBounds.bottom;
+    } else {
+      innerWidth = wrapperEl.ownerDocument.defaultView.innerWidth;
+      innerHeight = wrapperEl.ownerDocument.defaultView.innerHeight;
+    }
 
     // Test 1: does right edge extend beyond the width of the page?
     // If so, flip horizontally

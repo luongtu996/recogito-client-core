@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
-import { CSSTransition } from 'react-transition-group';
-import { CloseIcon } from '../../../Icons';
 import i18n from '../../../i18n';
 
 import Autocomplete from '../Autocomplete';
+import TagSelect, {TAGS} from "./TagSelect";
+import { CSSTransition } from 'react-transition-group';
+import { CloseIcon } from '../../../Icons';
 
-const getDraftTag = existingDraft =>
+const getDraftTag = (existingDraft) =>
   existingDraft ? existingDraft : {
     type: 'TextualBody', value: '', purpose: 'tagging', draft: true
   };
 
 const TagWidget = props => {
+  const existingTag = props.annotation ?
+    props.annotation.bodies.find(b => b.purpose === 'tagging') : null;
 
   // All tags (draft + non-draft)
   const all = props.annotation ?
     props.annotation.bodies.filter(b => b.purpose === 'tagging') : [];
 
   // Last draft tag goes into the input field
-  const draftTag = getDraftTag(all.slice().reverse().find(b => b.draft));
+  const draftTag = props.isSelect
+    ? getDraftTag(existingTag)
+    : getDraftTag(all.slice().reverse().find(b => b.draft));
 
   // All except draft tag
   const tags = all.filter(b => b != draftTag);
@@ -75,34 +80,45 @@ const TagWidget = props => {
 
   return (
     <div className="r6o-widget r6o-tag">
-      { tags.length > 0 &&
-        <ul className="r6o-taglist">
-          { tags.map(tag =>
-            <li key={tagValue(tag)} onClick={toggle(tag)}>
-              <span className="r6o-label">{tagValue(tag)}</span>
 
-              {!props.readOnly &&
-                <CSSTransition in={showDelete === tag} timeout={200} classNames="r6o-delete">
-                  <span className="r6o-delete-wrapper" onClick={onDelete(tag)}>
-                    <span className="r6o-delete">
-                      <CloseIcon width={12} />
-                    </span>
-                  </span>
-                </CSSTransition>
-              }
-            </li>
-          )}
-        </ul>
-      }
-
-      {!props.readOnly &&
-        <Autocomplete
-          focus={props.focus}
-          placeholder={props.textPlaceHolder || i18n.t('Add tag...')}
-          vocabulary={props.vocabulary || []}
-          onChange={onDraftChange}
-          onSubmit={onSubmit}/>
-      }
+      {!props.readOnly && (
+        props.isSelect ? (
+          <TagSelect
+            editable={true}
+            content={draftTag.value}
+            onChange={onDraftChange}
+            onSaveAndClose={props.onSaveAndClose}
+            select_tags={props.select_tags || []}
+          />
+        ) : (
+          <>
+            {tags.length > 0 &&
+              <ul className="r6o-taglist">
+                {tags.map(tag =>
+                  <li key={tagValue(tag)} onClick={toggle(tag)}>
+                    <span className="r6o-label">{tagValue(tag)}</span>
+                    {!props.readOnly &&
+                      <CSSTransition in={showDelete === tag} timeout={200} classNames="r6o-delete">
+                        <span className="r6o-delete-wrapper" onClick={onDelete(tag)}>
+                          <span className="r6o-delete">
+                            <CloseIcon width={12} />
+                          </span>
+                        </span>
+                      </CSSTransition>
+                    }
+                  </li>
+                )}
+              </ul>
+            }
+            <Autocomplete
+                focus={props.focus}
+                placeholder={props.textPlaceHolder || i18n.t('Add tag...')}
+                vocabulary={props.vocabulary || []}
+                onChange={onDraftChange}
+                onSubmit={onSubmit}/>
+          </>
+        )
+      )}
     </div>
   )
 

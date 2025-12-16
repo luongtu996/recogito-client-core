@@ -6,12 +6,18 @@
 .r6o-editor {
   position:absolute;
   z-index:99999;
-  width:400px;
   color:$standard-type;
   opacity:0;
   font-family:'Lato', sans-serif;
   font-size:17px;
   line-height:27px;
+  border-radius: 16px;
+  box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.09);
+  background: #fff;
+
+  &.highlight-edit {
+    width:100px;
+  }
 
   -webkit-transition:opacity 0.2s ease-in;
      -moz-transition:opacity 0.2s ease-in;
@@ -34,14 +40,16 @@
     left:5px;
     width:18px;
     height:18px;
-    background-color:#fff;
+    background-color: #1F2937;
     @include rotate(45deg);
   }
 
   .r6o-editor-inner {
     background-color:#fff;
+    max-height: 500px;
+    overflow: auto;
     @include rounded-corners(2px);
-    @include box-shadow(2px, 2px, 42px, 0.4);
+    //@include box-shadow(2px, 2px, 42px, 0.4);
 
     .r6o-widget:first-child {
       @include rounded-corners-top(2px);
@@ -139,4 +147,35 @@
 .r6o-purposedropdown {
   width: 150px;
   display: inline-block;
+}
+
+.hh-btn {
+  background-color: #1F2937;
+  color: #fff;
+  height: 35px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+
+  font-size: 12px;
+  line-height: 15px;
+  font-weight: 500;
+  border: 0;
+  border-radius: 8px;
+}
+
+.hh-annotation-selector {
+  display: flex;
+  width: auto;
+  max-width: 200px;
+  vertical-align: middle;
+  background-color: #1F2937;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.hh-split {
+  border-left: 0.5px solid rgba(255, 255, 255, 0.26);
+  margin: 4px;
 }

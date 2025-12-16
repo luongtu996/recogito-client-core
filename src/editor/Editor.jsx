@@ -4,6 +4,7 @@ import { getWidget, DEFAULT_WIDGETS } from './widgets';
 import { TrashIcon } from '../Icons';
 import setPosition from './setPosition';
 import i18n from '../i18n';
+import AnnotationTypeSelector from './AnnotationTypeSelector';
 
 /** We need to compare bounds by value, not by object ref **/
 const bounds = elem => {
@@ -26,10 +27,20 @@ export default class Editor extends Component {
     // Reference to the DOM element, so we can set position
     this.element = React.createRef();
 
+    // Detect annotationType based on props.annotation
+    let detectedType;
+    if (props.annotation && Array.isArray(props.annotation.bodies) && props.annotation.bodies.length) {
+      if (props.annotation.bodies.some(b => b.purpose === 'highlighting')) {
+        detectedType = 'highlight';
+      } else {
+        detectedType = 'note';
+      }
+    }
     this.state = {
       currentAnnotation: props.annotation,
       dragged: false,
-      selectionBounds: bounds(props.selectedElement)
+      selectionBounds: bounds(props.selectedElement),
+      annotationType: detectedType
     }
   }
 
@@ -41,6 +52,7 @@ export default class Editor extends Component {
       this.setState({
         currentAnnotation: next.annotation,
         selectionBounds: nextBounds
+        // Do not update annotationType from props
       });
     } else {
       this.setState({ selectionBounds: nextBounds });
@@ -64,7 +76,7 @@ export default class Editor extends Component {
   componentDidMount() {
     this.removeObserver = this.initResizeObserver();
 
-    // This makes sure the editor is repositioned if the widgets change
+      // This makes sure the editor is repositioned if the widgets change
     const observer = new MutationObserver(() => {
       if (this.element.current) {
         this.removeObserver && this.removeObserver();
@@ -84,13 +96,13 @@ export default class Editor extends Component {
     // Defaults to true
     const autoPosition =
       this.props.autoPosition === undefined ? true : this.props.autoPosition;
-    
+
     const baseOnParent =
       this.props.baseOnParent === undefined ? false : this.props.baseOnParent;
-    
+
     if (window?.ResizeObserver) {
       const resizeObserver = new ResizeObserver(() => {
-        if (!this.state.dragged)
+        if (!this.state.dragged && this.state.annotationType !== 'note')
           setPosition(this.props.wrapperEl, this.element.current, this.props.selectedElement, autoPosition, baseOnParent);
       });
 
@@ -98,7 +110,7 @@ export default class Editor extends Component {
       return () => resizeObserver.disconnect();
     } else {
       // Fire setPosition manually *only* for devices that don't support ResizeObserver
-      if (!this.state.dragged)
+      if (!this.state.dragged && this.state.annotationType !== 'note')
         setPosition(this.props.wrapperEl, this.element.current, this.props.selectedElement, autoPosition, baseOnParent);
     }
   }
@@ -135,7 +147,7 @@ export default class Editor extends Component {
     }, () => {
       if (saveImmediately)
         this.onOk();
-      else 
+      else
         this.props.onChanged && this.props.onChanged();
     })
   }
@@ -315,9 +327,23 @@ export default class Editor extends Component {
   onDelete = () =>
     this.props.onAnnotationDeleted(this.props.annotation);
 
-  render() {
-    const { currentAnnotation } = this.state;
+  setAnnotationType = (type) => {
+    this.updateCurrentAnnotation({
+      body:  [{ type: 'TextualBody', purpose: 'commenting', value: '' }]
+    }, true)
+  }
 
+  handleHighlight = () => {
+    this.updateCurrentAnnotation({
+      body:  [{ type: 'TextualBody', purpose: 'highlighting', value: '' }]
+    }, true)
+  }
+
+  isHighlightingBody = body =>
+      body.type === 'TextualBody' && body.purpose === 'highlighting';
+
+  render() {
+    const { currentAnnotation, annotationType } = this.state;
     // Use default comment + tag widget unless host app overrides
     const widgets = this.props.widgets ?
       this.props.widgets.map(getWidget) : DEFAULT_WIDGETS;
@@ -336,6 +362,36 @@ export default class Editor extends Component {
       !currentAnnotation.isSelection && // this is not a selection AND
       !widgets.some(isReadOnlyWidget);  // every widget is deletable
 
+    // Only show popup to select type if hasDelete is false and annotationType is not set
+    if (!annotationType) {
+      return (
+        <AnnotationTypeSelector
+          element={this.element}
+          dragged={this.state.dragged}
+          setAnnotationType={this.setAnnotationType}
+          onHighlight={this.handleHighlight}
+        />
+      );
+    }
+
+    const isHighlightingBody =  (currentAnnotation.bodies.some(this.isHighlightingBody));
+    if (isHighlightingBody && annotationType === 'highlight') {
+      return (
+        <div ref={this.element} className={this.state.dragged ? 'r6o-editor dragged' : 'r6o-editor'} style={{ width: '70px' }}>
+          <div className="r6o-arrow" />
+            { hasDelete && (
+              <button
+                className="hh-btn"
+                onClick={this.onDelete}>
+                <TrashIcon width={12} />
+                {i18n.t('Delete')}
+              </button>
+            )}
+        </div>
+      );
+    }
+
+    // If note, show normal editor
     return (
       <Draggable
         disabled={!this.props.detachable}
@@ -344,59 +400,10 @@ export default class Editor extends Component {
         onDrag={() => this.setState({ dragged: true })}>
 
         <div ref={this.element} className={this.state.dragged ? 'r6o-editor dragged' : 'r6o-editor'}>
-          <div className="r6o-arrow" />
-          <div className="r6o-editor-inner">
-            {widgets.map((widget, idx) =>
-              React.cloneElement(widget, {
-                key: `${idx}`,
-                focus: idx === 0,
-                annotation : currentAnnotation,
-                readOnly : this.props.readOnly,
-                env: this.props.env,
-                onAppendBody: this.onAppendBody,
-                onUpdateBody: this.onUpdateBody,
-                onRemoveBody: this.onRemoveBody,
-                onUpsertBody: this.onUpsertBody,
-                onBatchModify: this.onBatchModify,
-                onSetProperty: this.onSetProperty,
-                onAddContext: this.onAddContext,
-                onSaveAndClose: this.onOk
-              })
-            )}
-
-            { this.props.readOnly ? (
-              <div className="r6o-footer">
-                <button
-                  className="r6o-btn"
-                  onClick={this.onCancel}>{i18n.t('Close')}</button>
-              </div>
-            ) : (
-              <div
-                className={this.props.detachable ? "r6o-footer r6o-draggable" : "r6o-footer"}>
-                { hasDelete && (
-                  <button
-                    className="r6o-btn left delete-annotation"
-                    title={i18n.t('Delete')}
-                    onClick={this.onDelete}>
-                    <TrashIcon width={12} />
-                  </button>
-                )}
-
-                <button
-                  className="r6o-btn outline"
-                  onClick={this.onCancel}>{i18n.t('Cancel')}</button>
-
-                <button
-                  className="r6o-btn "
-                  onClick={this.onOk}>{i18n.t('Ok')}</button>
-              </div>
-            )}
-          </div>
         </div>
 
       </Draggable>
-    )
-
+    );
   }
 
 }

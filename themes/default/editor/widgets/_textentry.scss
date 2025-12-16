@@ -1,10 +1,22 @@
 .r6o-editable-text {
   max-height:120px;
-  overflow:auto;
   outline:none;
   min-height:2em;
-  font-size:14px;
   font-family:'Lato', sans-serif;
+  overflow: hidden scroll;
+  overflow-wrap: break-word;
+  height: 184px;
+  order: 2;
+  margin-bottom: 14px;
+  border: none !important;
+  color: #12263F !important;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  padding: 12px !important;
+  border-radius: 12px;
+  background: #fff !important;
 }
 
 .r6o-editable-text:empty:not(:focus):before {

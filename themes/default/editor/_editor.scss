@@ -33,6 +33,10 @@
     display:none;
   }
 
+  .r6o-arrow-white:after {
+    background-color: #fff !important;
+  }
+
   .r6o-arrow:after {
     content:'';
     position:absolute;

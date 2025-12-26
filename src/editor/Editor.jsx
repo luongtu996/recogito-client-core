@@ -76,7 +76,7 @@ export default class Editor extends Component {
   componentDidMount() {
     this.removeObserver = this.initResizeObserver();
 
-      // This makes sure the editor is repositioned if the widgets change
+    // This makes sure the editor is repositioned if the widgets change
     const observer = new MutationObserver(() => {
       if (this.element.current) {
         this.removeObserver && this.removeObserver();
@@ -102,15 +102,16 @@ export default class Editor extends Component {
 
     if (window?.ResizeObserver) {
       const resizeObserver = new ResizeObserver(() => {
-        if (!this.state.dragged && this.state.annotationType !== 'note')
+        if (!this.state.dragged && (this.state.annotationType !== 'note' || this.props.readOnly)) {
           setPosition(this.props.wrapperEl, this.element.current, this.props.selectedElement, autoPosition, baseOnParent);
+        }
       });
 
       resizeObserver.observe(this.props.wrapperEl);
       return () => resizeObserver.disconnect();
     } else {
       // Fire setPosition manually *only* for devices that don't support ResizeObserver
-      if (!this.state.dragged && this.state.annotationType !== 'note')
+      if (!this.state.dragged && (this.state.annotationType !== 'note' || this.props.readOnly))
         setPosition(this.props.wrapperEl, this.element.current, this.props.selectedElement, autoPosition, baseOnParent);
     }
   }
@@ -171,7 +172,7 @@ export default class Editor extends Component {
   /**
    * For convenience: an 'append or update' shorthand.
    */
-   onUpsertBody = (arg1, arg2, saveImmediately) => {
+  onUpsertBody = (arg1, arg2, saveImmediately) => {
     if (arg1 == null && arg2 != null) {
       // Append arg 2 as a new body
       this.onAppendBody(arg2, saveImmediately);
@@ -254,8 +255,8 @@ export default class Editor extends Component {
           return diff ? diff.updated : b;
         }),
 
-        // Append
-        ...toAppend
+      // Append
+      ...toAppend
     ]
 
     this.updateCurrentAnnotation({ body: updatedBodies }, saveImmediately);
@@ -340,7 +341,7 @@ export default class Editor extends Component {
   }
 
   isHighlightingBody = body =>
-      body.type === 'TextualBody' && body.purpose === 'highlighting';
+    body.type === 'TextualBody' && body.purpose === 'highlighting';
 
   render() {
     const { currentAnnotation, annotationType } = this.state;
@@ -380,18 +381,79 @@ export default class Editor extends Component {
         <div ref={this.element} className={this.state.dragged ? 'r6o-editor dragged' : 'r6o-editor'} style={{ width: '70px' }}>
           <div className="r6o-arrow" />
             { hasDelete && (
-              <button
-                className="hh-btn"
-                onClick={this.onDelete}>
-                <TrashIcon width={12} />
-                {i18n.t('Delete')}
-              </button>
-            )}
+            <button
+              className="hh-btn"
+              onClick={this.onDelete}>
+              <TrashIcon width={12} />
+              {i18n.t('Delete')}
+            </button>
+          )}
         </div>
       );
     }
 
-    // If note, show normal editor
+    if (this.props.readOnly) {
+      return (
+        <Draggable
+          disabled={!this.props.detachable}
+          handle=".r6o-draggable"
+          cancel=".r6o-btn, .r6o-btn *"
+          onDrag={() => this.setState({ dragged: true })}>
+
+          <div ref={this.element} className={this.state.dragged ? 'r6o-editor dragged' : 'r6o-editor'}>
+            <div className="r6o-arrow r6o-arrow-white" />
+            <div className="r6o-editor-inner">
+              {widgets.map((widget, idx) =>
+                React.cloneElement(widget, {
+                  key: `${idx}`,
+                  focus: idx === 0,
+                  annotation: currentAnnotation,
+                  readOnly: this.props.readOnly,
+                  env: this.props.env,
+                  onAppendBody: this.onAppendBody,
+                  onUpdateBody: this.onUpdateBody,
+                  onRemoveBody: this.onRemoveBody,
+                  onUpsertBody: this.onUpsertBody,
+                  onBatchModify: this.onBatchModify,
+                  onSetProperty: this.onSetProperty,
+                  onAddContext: this.onAddContext,
+                  onSaveAndClose: this.onOk
+                })
+              )}
+
+              {this.props.readOnly ? (
+                <div className="r6o-footer">
+                  <button
+                    className="r6o-btn"
+                    onClick={this.onCancel}>{i18n.t('Close')}</button>
+                </div>
+              ) : (
+                <div
+                  className={this.props.detachable ? "r6o-footer r6o-draggable" : "r6o-footer"}>
+                  {hasDelete && (
+                    <button
+                      className="r6o-btn left delete-annotation"
+                      title={i18n.t('Delete')}
+                      onClick={this.onDelete}>
+                      <TrashIcon width={12} />
+                    </button>
+                  )}
+
+                  <button
+                    className="r6o-btn outline"
+                    onClick={this.onCancel}>{i18n.t('Cancel')}</button>
+
+                  <button
+                    className="r6o-btn "
+                    onClick={this.onOk}>{i18n.t('Ok')}</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </Draggable>
+      );
+    }
+
     return (
       <Draggable
         disabled={!this.props.detachable}

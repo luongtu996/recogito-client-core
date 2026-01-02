@@ -4,6 +4,7 @@ const MARGIN_VERTICAL = 14;
 const setPosition = (wrapperEl, editorEl, selectedEl, autoPosition, baseOnParent = false) => {
   // Container element bounds
   const containerBounds = wrapperEl.getBoundingClientRect();
+  console.log('Container bounds:', wrapperEl,containerBounds);
 
   // Re-set orientation class
   editorEl.className = 'r6o-editor r6o-arrow-top r6o-arrow-left';
